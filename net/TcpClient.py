@@ -16,17 +16,23 @@ class TcpClient(object):
 		while True:
 			try:
 				data = self.sock.recv(1024)
-				print(data)
+				if data == b"HEARTBEAT":
+					self.send_data(b"HEARTBEAT_ACK")
+				else:
+					pass
 			except:
 				break
 
 	def send_data(self, data):
-		data = bytes(data, 'utf-8')
 		self.sock.send(data)
+
+	def set_disconnect_callback(self, callback):
+		self._disconnect_cb = callback
 
 if __name__ == '__main__':
 	client = TcpClient('127.0.0.1', 8080)
 	client.start()
 	while True:
 		data = input("> ")
+		data = bytes(data, 'utf-8')
 		client.send_data(data)
