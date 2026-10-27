@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import asyncio
+import queue
 
 
 class ClientProxy(object):
@@ -45,7 +46,8 @@ class GameServer(object):
 
 	def __init__(self):
 		self.clients = {}
-		self.queue = asyncio.Queue()
+		self.send_queue = queue.Queue()
+		self.recv_queue = queue.Queue()
 		self._next_id = 1
 
 	def start(self):
