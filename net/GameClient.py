@@ -38,18 +38,17 @@ class GameClient(object):
 	async def _async_start(self, host, port):
 		# asyncio的Queue需要在async方法中创建来获取当前的event_loop
 		self.send_queue = asyncio.Queue()
-
 		try:
 			await self.connect(host, port)
-			await self._network_loop()
 			self._startup_event.set()
-			self.net_loop.run_forever()
+			await self._network_loop()
 		except:
 			# TODO: 连接异常处理
 			pass
 
 	async def connect(self, host, port):
 		try:
+			print("connecting to server...")
 			self.host, self.port = host, port
 			self.reader, self.writer = await asyncio.open_connection(host, port)
 			self.is_connected = True
@@ -59,9 +58,9 @@ class GameClient(object):
 			self.is_connected = False
 			raise e
 
-	async def send_data(self, data):
-		self.writer.write(data)
-		await self.writer.drain()
+	def send_data(self, data):
+		if self.send_queue is not None:
+			self.net_loop.call_soon_threadsafe(self.send_queue.put_nowait, data)
 
 	async def _network_receive(self):
 		reader = self.reader
@@ -105,11 +104,26 @@ class GameClient(object):
 			self.is_connected = False
 
 
+def _recv_thread(client):
+	while True:
+		try:
+			data = client.recv_queue.get(timeout=0.1)
+			if data is not None:
+				print(f"recv: {data}")
+		except queue.Empty:
+			pass
+
+
 if __name__ == "__main__":
 	client = GameClient()
+	print("client starting...")
 	client.start("127.0.0.1", 8080)
+	threading.Thread(target=_recv_thread, args=(client,), daemon=True).start()
 	while True:
 		raw = input(">>>")
+		if raw == "c":
+			print(client.send_queue)
+			continue
 		if raw == "exit":
 			break
 		client.send_data(raw.encode())
