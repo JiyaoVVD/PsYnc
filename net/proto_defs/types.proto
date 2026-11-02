@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package game.network.types;
+
+message Value{
+	oneof kind{
+		int64 int_val = 1;
+		double float_val = 2;
+		bool bool_val = 3;
+		string str_val = 4;
+		bytes bytes_val = 5;
+		List list_val = 6;
+		Dict dict_val = 7;
+	}
+}
+
+message List{
+	repeated Value items = 1;
+}
+
+message StrDict{
+	map<string, Value> fields = 1;
+}
+
+message IntDict{
+	map<int64, Value> fields = 1;
+}
+
+message BoolDict{
+	map<bool, Value> fields = 1;
+}
+
+message Dict{
+	oneof dict {
+		StrDict str_dict = 1;
+		IntDict int_dict = 2;
+		BoolDict bool_dict = 3;
+	}
+}

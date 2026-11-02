@@ -95,6 +95,7 @@ class GameServer(object):
 		self.net_thread.start()
 
 	def _thread_entry(self, host, port):
+		asyncio.set_event_loop(self.net_loop)
 		self.net_loop.run_until_complete(self._serve(host, port))
 
 	async def _serve(self, host, port):
