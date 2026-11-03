@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package game.network.rpc;
+
+import "types.proto";
+
+message RpcArgs{
+    repeated .game.network.types.Value args = 1;
+}
+
+message RpcCall{
+    int64 mailbox = 1;
+    repeated .game.network.types.Value args = 2;
+}

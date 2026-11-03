@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0btypes.proto\x12\x12game.network.types\"\xcf\x01\n\x05Value\x12\x11\n\x07int_val\x18\x01 \x01(\x03H\x00\x12\x13\n\tfloat_val\x18\x02 \x01(\x01H\x00\x12\x12\n\x08\x62ool_val\x18\x03 \x01(\x08H\x00\x12\x11\n\x07str_val\x18\x04 \x01(\tH\x00\x12\x13\n\tbytes_val\x18\x05 \x01(\x0cH\x00\x12,\n\x08list_val\x18\x06 \x01(\x0b\x32\x18.game.network.types.ListH\x00\x12,\n\x08\x64ict_val\x18\x07 \x01(\x0b\x32\x18.game.network.types.DictH\x00\x42\x06\n\x04kind\"0\n\x04List\x12(\n\x05items\x18\x01 \x03(\x0b\x32\x19.game.network.types.Value\"\x8c\x01\n\x07StrDict\x12\x37\n\x06\x66ields\x18\x01 \x03(\x0b\x32\'.game.network.types.StrDict.FieldsEntry\x1aH\n\x0b\x46ieldsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12(\n\x05value\x18\x02 \x01(\x0b\x32\x19.game.network.types.Value:\x02\x38\x01\"\x8c\x01\n\x07IntDict\x12\x37\n\x06\x66ields\x18\x01 \x03(\x0b\x32\'.game.network.types.IntDict.FieldsEntry\x1aH\n\x0b\x46ieldsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12(\n\x05value\x18\x02 \x01(\x0b\x32\x19.game.network.types.Value:\x02\x38\x01\"\x8e\x01\n\x08\x42oolDict\x12\x38\n\x06\x66ields\x18\x01 \x03(\x0b\x32(.game.network.types.BoolDict.FieldsEntry\x1aH\n\x0b\x46ieldsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x08\x12(\n\x05value\x18\x02 \x01(\x0b\x32\x19.game.network.types.Value:\x02\x38\x01\"\xa3\x01\n\x04\x44ict\x12/\n\x08str_dict\x18\x01 \x01(\x0b\x32\x1b.game.network.types.StrDictH\x00\x12/\n\x08int_dict\x18\x02 \x01(\x0b\x32\x1b.game.network.types.IntDictH\x00\x12\x31\n\tbool_dict\x18\x03 \x01(\x0b\x32\x1c.game.network.types.BoolDictH\x00\x42\x06\n\x04\x64ictb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0btypes.proto\x12\x12game.network.types\"\xe4\x01\n\x05Value\x12\x11\n\x07int_val\x18\x01 \x01(\x03H\x00\x12\x13\n\tfixed_val\x18\x02 \x01(\x03H\x00\x12\x13\n\tfloat_val\x18\x03 \x01(\x01H\x00\x12\x12\n\x08\x62ool_val\x18\x04 \x01(\x08H\x00\x12\x11\n\x07str_val\x18\x05 \x01(\tH\x00\x12\x13\n\tbytes_val\x18\x06 \x01(\x0cH\x00\x12,\n\x08list_val\x18\x07 \x01(\x0b\x32\x18.game.network.types.ListH\x00\x12,\n\x08\x64ict_val\x18\x08 \x01(\x0b\x32\x18.game.network.types.DictH\x00\x42\x06\n\x04kind\"0\n\x04List\x12(\n\x05items\x18\x01 \x03(\x0b\x32\x19.game.network.types.Value\"\x8c\x01\n\x07StrDict\x12\x37\n\x06\x66ields\x18\x01 \x03(\x0b\x32\'.game.network.types.StrDict.FieldsEntry\x1aH\n\x0b\x46ieldsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12(\n\x05value\x18\x02 \x01(\x0b\x32\x19.game.network.types.Value:\x02\x38\x01\"\x8c\x01\n\x07IntDict\x12\x37\n\x06\x66ields\x18\x01 \x03(\x0b\x32\'.game.network.types.IntDict.FieldsEntry\x1aH\n\x0b\x46ieldsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12(\n\x05value\x18\x02 \x01(\x0b\x32\x19.game.network.types.Value:\x02\x38\x01\"\x8e\x01\n\x08\x42oolDict\x12\x38\n\x06\x66ields\x18\x01 \x03(\x0b\x32(.game.network.types.BoolDict.FieldsEntry\x1aH\n\x0b\x46ieldsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x08\x12(\n\x05value\x18\x02 \x01(\x0b\x32\x19.game.network.types.Value:\x02\x38\x01\"\xa3\x01\n\x04\x44ict\x12/\n\x08str_dict\x18\x01 \x01(\x0b\x32\x1b.game.network.types.StrDictH\x00\x12/\n\x08int_dict\x18\x02 \x01(\x0b\x32\x1b.game.network.types.IntDictH\x00\x12\x31\n\tbool_dict\x18\x03 \x01(\x0b\x32\x1c.game.network.types.BoolDictH\x00\x42\x06\n\x04\x64ictb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,21 +38,21 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_BOOLDICT_FIELDSENTRY']._loaded_options = None
   _globals['_BOOLDICT_FIELDSENTRY']._serialized_options = b'8\001'
   _globals['_VALUE']._serialized_start=36
-  _globals['_VALUE']._serialized_end=243
-  _globals['_LIST']._serialized_start=245
-  _globals['_LIST']._serialized_end=293
-  _globals['_STRDICT']._serialized_start=296
-  _globals['_STRDICT']._serialized_end=436
-  _globals['_STRDICT_FIELDSENTRY']._serialized_start=364
-  _globals['_STRDICT_FIELDSENTRY']._serialized_end=436
-  _globals['_INTDICT']._serialized_start=439
-  _globals['_INTDICT']._serialized_end=579
-  _globals['_INTDICT_FIELDSENTRY']._serialized_start=507
-  _globals['_INTDICT_FIELDSENTRY']._serialized_end=579
-  _globals['_BOOLDICT']._serialized_start=582
-  _globals['_BOOLDICT']._serialized_end=724
-  _globals['_BOOLDICT_FIELDSENTRY']._serialized_start=652
-  _globals['_BOOLDICT_FIELDSENTRY']._serialized_end=724
-  _globals['_DICT']._serialized_start=727
-  _globals['_DICT']._serialized_end=890
+  _globals['_VALUE']._serialized_end=264
+  _globals['_LIST']._serialized_start=266
+  _globals['_LIST']._serialized_end=314
+  _globals['_STRDICT']._serialized_start=317
+  _globals['_STRDICT']._serialized_end=457
+  _globals['_STRDICT_FIELDSENTRY']._serialized_start=385
+  _globals['_STRDICT_FIELDSENTRY']._serialized_end=457
+  _globals['_INTDICT']._serialized_start=460
+  _globals['_INTDICT']._serialized_end=600
+  _globals['_INTDICT_FIELDSENTRY']._serialized_start=528
+  _globals['_INTDICT_FIELDSENTRY']._serialized_end=600
+  _globals['_BOOLDICT']._serialized_start=603
+  _globals['_BOOLDICT']._serialized_end=745
+  _globals['_BOOLDICT_FIELDSENTRY']._serialized_start=673
+  _globals['_BOOLDICT_FIELDSENTRY']._serialized_end=745
+  _globals['_DICT']._serialized_start=748
+  _globals['_DICT']._serialized_end=911
 # @@protoc_insertion_point(module_scope)
