@@ -2,20 +2,10 @@
 
 from net.protos import types_pb2
 
-_PROTO_MAP = {
-	int: 'int_val',
-	float: 'float_val',
-	bool: 'bool_val',
-	str: 'str_val',
-	bytes: 'bytes_val',
-	list: 'list_val',
-	dict: 'dict_val',
-}
-
 
 class Value:
 	def __init__(self, default=None):
-		self.value = default
+		self.default = default
 
 	def serialize(self, value):
 		raise NotImplementedError
@@ -23,8 +13,12 @@ class Value:
 	def deserialize(self, pak):
 		raise NotImplementedError
 
+	def default_value(self):
+		return self.default
+
 class Int(Value):
 	def serialize(self, value):
+		value = self.default if value is None else value
 		return types_pb2.Value(int_val=value)
 
 	def deserialize(self, pak):
@@ -32,6 +26,7 @@ class Int(Value):
 
 class Float(Value):
 	def serialize(self, value):
+		value = self.default if value is None else value
 		return types_pb2.Value(float_val=value)
 
 	def deserialzie(self, pak):
@@ -39,6 +34,7 @@ class Float(Value):
 
 class Str(Value):
 	def serialize(self, value):
+		value = self.default if value is None else value
 		return types_pb2.Value(str_val=value)
 
 	def deserialize(self, pak):
@@ -46,6 +42,7 @@ class Str(Value):
 
 class Bool(Value):
 	def serialize(self, value):
+		value = self.default if value is None else value
 		return types_pb2.Value(bool_val=value)
 
 	def deserialize(self, pak):
@@ -53,21 +50,11 @@ class Bool(Value):
 
 class Bytes(Value):
 	def serialzie(self, value):
+		value = self.default if value is None else value
 		return types_pb2.Value(bytes_val=value)
 
 	def deserialize(self, pak):
 		return pak.bytes_val
-
-
-def serialize_value(value_type, value):
-	prop_name = _PROTO_MAP[value_type]
-	value_pak = types_pb2.Value()
-	setattr(value_pak, prop_name, value)
-	return value_pak
-
-def deserialize_value(value_type, value_pak):
-	prop_name = _PROTO_MAP[value_type]
-	return getattr(value_pak, prop_name)
 
 if __name__ == "__main__":
 	t = Int(2)
