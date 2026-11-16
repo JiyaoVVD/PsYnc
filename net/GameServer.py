@@ -113,20 +113,11 @@ class GameServer(object):
 		await client_proxy.start()
 
 
-def recv_data(server):
-	while True:
-		try:
-			data = server.recv_queue.get(timeout=0.1)
-			if data:
-				print(f">>>recv: {data}")
-				server.clients[1].send_data(b"Echo: " + data)
-		except queue.Empty:
-			pass
-		
-
-
 if __name__ =="__main__":
+	from net.rpc.RpcDispatcher import RpcDispatcher
 	server = GameServer()
+	dispatcher = RpcDispatcher(server)
+	interval = 1.0 / 60
+
 	server.start("127.0.0.1", 8080)
 	print("running...")
-	recv_data(server)

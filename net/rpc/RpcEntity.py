@@ -2,6 +2,7 @@
 
 from net.rpc.RpcStub import RpcStub
 
+
 class RpcMethod:
 	def __init__(self, target="server", handler=None, args=()):
 		self.target = target
