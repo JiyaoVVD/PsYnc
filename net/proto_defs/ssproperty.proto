@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package game.network.ssproperty;
+
+import "net/protos/types.proto";
+
+message PropertyField{
+	oneof kind{
+		int64 int_key = 1;
+		string str_key = 2;
+		bool bool_key = 3;
+		int64 index_key = 4;
+	}
+}
+
+message PropertyChange{
+	PropertyField field = 1;
+	.game.network.types.Value value = 2;
+	repeated PropertyField path = 3;
+}
+
+message PropertyPatch{
+	int64 mailbox = 1;
+	repeated PropertyChange changes = 2;
+}

@@ -15,7 +15,7 @@ if not exist "%PROTOC%" (
 pushd "%~dp0" || exit /b 1
 
 rem Map the source directory to the generated Python package path.
-"%PROTOC%" --proto_path=net/protos=net/proto_defs --python_out=. net/protos/types.proto net/protos/rpc.proto
+"%PROTOC%" --proto_path=net/protos=net/proto_defs --python_out=. net/protos/types.proto net/protos/rpc.proto net/protos/ssproperty.proto
 set "RESULT=%ERRORLEVEL%"
 
 popd
