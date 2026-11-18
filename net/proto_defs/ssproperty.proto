@@ -14,9 +14,8 @@ message PropertyField{
 }
 
 message PropertyChange{
-	PropertyField field = 1;
-	.game.network.types.Value value = 2;
-	repeated PropertyField path = 3;
+	.game.network.types.Value value = 1;
+	repeated PropertyField path = 2;
 }
 
 message PropertyPatch{

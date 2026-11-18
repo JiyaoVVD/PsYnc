@@ -22,7 +22,7 @@ class RpcMethod:
 
 
 class RpcCallableMixin(object):
-	__rpc_methods__ = {}
+	_rpc_methods = {}
 
 	def __init_subclass__(cls, **kwargs):
 		super().__init_subclass__(**kwargs)
@@ -30,7 +30,7 @@ class RpcCallableMixin(object):
 		attributes = {}
 		for base in reversed(cls.__mro__):
 			attributes.update(vars(base))
-		cls.__rpc_methods__ = {
+		cls._rpc_methods = {
 			name: value for name, value in attributes.items()
 			if isinstance(value, RpcMethod)
 		}

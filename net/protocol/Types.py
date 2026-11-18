@@ -56,6 +56,20 @@ class Bytes(Value):
 	def deserialize(self, pak):
 		return pak.bytes_val
 
+
+class Dict(dict, Value):
+	
+
+	def __setitem__(self, key, value):
+		return super().__setitem__(key, value)
+
+	def serialzie(self, value):
+		return ""
+
+	def deserialize(self, pak):
+		return {}
+
+
 if __name__ == "__main__":
 	t = Int(2)
 	pak = t.serialize(123)
