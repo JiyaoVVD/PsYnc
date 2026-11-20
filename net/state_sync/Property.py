@@ -41,9 +41,10 @@ class Property(object):
 class PropertyHostMixin(object):
 	def __init_subclass__(cls, **kwargs):
 		super().__init_subclass__(**kwargs)
+		cls._ss_properties = {}
 
 	def pack_property(self):
-		if not hasattr(self, "_ss_properties") or not self.__ss_properties\
+		if not hasattr(self, "_ss_properties") or not self._ss_properties\
 			or not hasattr(self, "mailbox"):
 			return None
 		patch = ssproperty_pb2.PropertyPatch(mailbox=self.mailbox)

@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from net.protos import types_pb2 as net_dot_protos_dot_types__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1bnet/protos/ssproperty.proto\x12\x17game.network.ssproperty\x1a\x16net/protos/types.proto\"f\n\rPropertyField\x12\x11\n\x07int_key\x18\x01 \x01(\x03H\x00\x12\x11\n\x07str_key\x18\x02 \x01(\tH\x00\x12\x12\n\x08\x62ool_key\x18\x03 \x01(\x08H\x00\x12\x13\n\tindex_key\x18\x04 \x01(\x03H\x00\x42\x06\n\x04kind\"\xa7\x01\n\x0ePropertyChange\x12\x35\n\x05\x66ield\x18\x01 \x01(\x0b\x32&.game.network.ssproperty.PropertyField\x12(\n\x05value\x18\x02 \x01(\x0b\x32\x19.game.network.types.Value\x12\x34\n\x04path\x18\x03 \x03(\x0b\x32&.game.network.ssproperty.PropertyField\"Z\n\rPropertyPatch\x12\x0f\n\x07mailbox\x18\x01 \x01(\x03\x12\x38\n\x07\x63hanges\x18\x02 \x03(\x0b\x32\'.game.network.ssproperty.PropertyChangeb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1bnet/protos/ssproperty.proto\x12\x17game.network.ssproperty\x1a\x16net/protos/types.proto\"f\n\rPropertyField\x12\x11\n\x07int_key\x18\x01 \x01(\x03H\x00\x12\x11\n\x07str_key\x18\x02 \x01(\tH\x00\x12\x12\n\x08\x62ool_key\x18\x03 \x01(\x08H\x00\x12\x13\n\tindex_key\x18\x04 \x01(\x03H\x00\x42\x06\n\x04kind\"p\n\x0ePropertyChange\x12(\n\x05value\x18\x01 \x01(\x0b\x32\x19.game.network.types.Value\x12\x34\n\x04path\x18\x02 \x03(\x0b\x32&.game.network.ssproperty.PropertyField\"Z\n\rPropertyPatch\x12\x0f\n\x07mailbox\x18\x01 \x01(\x03\x12\x38\n\x07\x63hanges\x18\x02 \x03(\x0b\x32\'.game.network.ssproperty.PropertyChangeb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,8 +34,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_PROPERTYFIELD']._serialized_start=80
   _globals['_PROPERTYFIELD']._serialized_end=182
-  _globals['_PROPERTYCHANGE']._serialized_start=185
-  _globals['_PROPERTYCHANGE']._serialized_end=352
-  _globals['_PROPERTYPATCH']._serialized_start=354
-  _globals['_PROPERTYPATCH']._serialized_end=444
+  _globals['_PROPERTYCHANGE']._serialized_start=184
+  _globals['_PROPERTYCHANGE']._serialized_end=296
+  _globals['_PROPERTYPATCH']._serialized_start=298
+  _globals['_PROPERTYPATCH']._serialized_end=388
 # @@protoc_insertion_point(module_scope)
