@@ -10,7 +10,24 @@ def serialize_by_type(value):
 	return VALUE_TYPE_MAP[value_type].serialize(value)
 
 
-class Value:
+def deserialize_by_type(pak):
+	field_name = pak.WhichOneof("kind")
+	if field_name not in VALUE_FIELD_MAP:
+		raise RuntimeError("Unsupported value field: %s" % field_name)
+	return VALUE_FIELD_MAP[field_name].deserialize(pak)
+
+
+ALL_TYPES = set()
+
+class _ValueMeta(type):
+	def __new__(cls, name, bases, attrs):
+		new_cls = super().__new__(cls, name, bases, attrs)
+		if name != "Value":
+			ALL_TYPES.add(new_cls)
+		return new_cls
+
+
+class Value(metaclass=_ValueMeta):
 	def __init__(self, default=None):
 		self.default = default
 
@@ -19,6 +36,9 @@ class Value:
 
 	def deserialize(self, pak):
 		raise NotImplementedError
+
+	def check(self, value):
+		return True
 
 	def default_value(self):
 		return self.default
@@ -31,6 +51,10 @@ class Int(Value):
 	def deserialize(self, pak):
 		return pak.int_val
 
+	def check(self, value):
+		return type(value) == int
+
+
 class Float(Value):
 	def serialize(self, value):
 		value = self.default if value is None else value
@@ -38,6 +62,10 @@ class Float(Value):
 
 	def deserialzie(self, pak):
 		return pak.float_val
+
+	def check(self, value):
+		return type(value) in (float, int)
+	
 
 class Str(Value):
 	def serialize(self, value):
@@ -47,6 +75,10 @@ class Str(Value):
 	def deserialize(self, pak):
 		return pak.str_val
 
+	def check(self, value):
+		return type(value) == str
+
+
 class Bool(Value):
 	def serialize(self, value):
 		value = self.default if value is None else value
@@ -55,6 +87,10 @@ class Bool(Value):
 	def deserialize(self, pak):
 		return pak.bool_val
 
+	def check(self, value):
+		return type(value) == bool
+
+
 class Bytes(Value):
 	def serialzie(self, value):
 		value = self.default if value is None else value
@@ -62,6 +98,9 @@ class Bytes(Value):
 
 	def deserialize(self, pak):
 		return pak.bytes_val
+
+	def check(self, value):
+		return type(value) == bytes
 
 
 class List(Value):
@@ -75,10 +114,14 @@ class List(Value):
 	def deserialize(self, pak):
 		value = []
 		for item in pak.list_val.items:
-			item_field = item.WhichOneof('kind')
-			item_value = getattr(item, item_field) if item_field is not None else None
-			value.append(item_value)
+			value.append(deserialize_by_type(item))
 		return value
+
+	def check(self, value):
+		"""
+		list和dict都只检查最外层容器的类型就行了，内部元素的类型检查交给协议层实现
+		"""
+		return type(value) == list or issubclass(type(value), list)
 
 
 class Dict(Value):
@@ -95,12 +138,11 @@ class Dict(Value):
 		for kv_pair in pak.dict_val.items:
 			k = kv_pair.key
 			v = kv_pair.value
-			key_field = k.WhichOneof('kind')
-			key_value = getattr(k, key_field) if key_field is not None else None
-			value_field = v.WhichOneof('kind')
-			value_value = getattr(v, value_field) if value_field is not None else None
-			value[key_value] = value_value
+			value[deserialize_by_type(k)] = deserialize_by_type(v)
 		return value
+
+	def check(self, value):
+		return type(value) == dict or issubclass(type(value), dict)
 
 
 VALUE_TYPE_MAP = {
@@ -111,6 +153,16 @@ VALUE_TYPE_MAP = {
 	bytes: Bytes(),
 	list: List(),
 	dict: Dict(),
+}
+
+VALUE_FIELD_MAP = {
+	"int_val": Int(),
+	"float_val": Float(),
+	"str_val": Str(),
+	"bool_val": Bool(),
+	"bytes_val": Bytes(),
+	"list_val": List(),
+	"dict_val": Dict(),
 }
 
 
