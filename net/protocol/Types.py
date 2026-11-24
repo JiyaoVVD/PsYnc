@@ -5,9 +5,15 @@ from net.protos import types_pb2
 
 def serialize_by_type(value):
 	value_type = type(value)
-	if value_type not in VALUE_TYPE_MAP:
-		raise RuntimeError("Unsupported value type: %s" % value_type.__name__)
-	return VALUE_TYPE_MAP[value_type].serialize(value)
+	codec = VALUE_TYPE_MAP.get(value_type)
+	if codec is None:
+		if isinstance(value, list):
+			codec = VALUE_TYPE_MAP[list]
+		elif isinstance(value, dict):
+			codec = VALUE_TYPE_MAP[dict]
+		else:
+			raise RuntimeError("Unsupported value type: %s" % value_type.__name__)
+	return codec.serialize(value)
 
 
 def deserialize_by_type(pak):
@@ -60,7 +66,7 @@ class Float(Value):
 		value = self.default if value is None else value
 		return types_pb2.Value(float_val=value)
 
-	def deserialzie(self, pak):
+	def deserialize(self, pak):
 		return pak.float_val
 
 	def check(self, value):
@@ -92,7 +98,7 @@ class Bool(Value):
 
 
 class Bytes(Value):
-	def serialzie(self, value):
+	def serialize(self, value):
 		value = self.default if value is None else value
 		return types_pb2.Value(bytes_val=value)
 

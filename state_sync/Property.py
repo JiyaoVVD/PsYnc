@@ -9,163 +9,219 @@ class SyncCond:
 	ALL = 3
 
 
+_MISSING = object()
+
+
+def _wrap_value(owner, state, value):
+	if isinstance(value, list):
+		return _HookedList(owner, state, value)
+	if isinstance(value, dict):
+		return _HookedDict(owner, state, value)
+	return value
+
+
 class _HookedList(list):
-	def __init__(self, owner, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, owner, state, values=(), /):
 		self.owner = owner
+		self.state = state
+		super().__init__(_wrap_value(owner, state, value) for value in values)
 
 	def __setitem__(self, key, value):
-		if value != self[key]:
-			self.owner.changed = True
-		if isinstance(value, dict):
-			value = _HookedDict(self.owner, value)
-		elif isinstance(value, list):
-			value = _HookedList(self.owner, value)
+		if isinstance(key, slice):
+			value = [_wrap_value(self.owner, self.state, item) for item in value]
+		elif self[key] is not value:
+			value = _wrap_value(self.owner, self.state, value)
 		super().__setitem__(key, value)
+		self.state.changed = True
 
 	def __delitem__(self, key):
-		self.owner.changed = True
 		super().__delitem__(key)
+		self.state.changed = True
 
-	def pop(self, key=-1):
-		ret = super().pop(key)
-		self.owner.changed = True
-		return ret
+	def __iadd__(self, values):
+		self.extend(values)
+		return self
 
-	def append(self, value):
-		if isinstance(value, dict):
-			value = _HookedDict(self.owner, value)
-		elif isinstance(value, list):
-			value = _HookedList(self.owner, value)
-		super().append(value)
-		self.owner.changed = True
+	def __imul__(self, count):
+		super().__imul__(count)
+		self.state.changed = True
+		return self
 
-	def extend(self, values):
-		new_values = []
-		for value in values:
-			if isinstance(value, dict):
-				value = _HookedDict(self.owner, value)
-			elif isinstance(value, list):
-				value = _HookedList(self.owner, value)
-			new_values.append(value)
-		super().extend(new_values)
-		self.owner.changed = True
+	def append(self, value, /):
+		super().append(_wrap_value(self.owner, self.state, value))
+		self.state.changed = True
 
-	def insert(self, index, value):
-		if isinstance(value, dict):
-			value = _HookedDict(self.owner, value)
-		elif isinstance(value, list):
-			value = _HookedList(self.owner, value)
-		super().insert(index, value)
-		self.owner.changed = True
+	def extend(self, values, /):
+		wrapped = [_wrap_value(self.owner, self.state, value) for value in values]
+		if wrapped:
+			super().extend(wrapped)
+			self.state.changed = True
 
-	def remove(self, value):
+	def insert(self, index, value, /):
+		super().insert(index, _wrap_value(self.owner, self.state, value))
+		self.state.changed = True
+
+	def pop(self, index=-1, /):
+		value = super().pop(index)
+		self.state.changed = True
+		return value
+
+	def remove(self, value, /):
 		super().remove(value)
-		self.owner.changed = True
+		self.state.changed = True
+
+	def clear(self):
+		if self:
+			super().clear()
+			self.state.changed = True
 
 	def reverse(self):
 		super().reverse()
-		self.owner.changed = True
+		self.state.changed = True
 
-	def sort(self, *args, **kwargs):
-		super().sort(*args, **kwargs)
-		self.owner.changed = True
+	def sort(self, *, key=None, reverse=False):
+		values = sorted(self, key=key, reverse=reverse)
+		super().__setitem__(slice(None), values)
+		self.state.changed = True
 
 
 class _HookedDict(dict):
-	"""
-	Hook buildin dict来支持修改key时能够触发同步
-	"""
-	def __init__(self, owner, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, owner, state, /, *args, **kwargs):
 		self.owner = owner
+		self.state = state
+		values = dict(*args, **kwargs)
+		super().__init__({key: _wrap_value(owner, state, value) for key, value in values.items()})
 
 	def __setitem__(self, key, value):
-		if value != self.get(key):
-			self.owner.changed = True
-		if isinstance(value, dict):
-			value = _HookedDict(self.owner, value)
-		elif isinstance(value, list):
-			value = _HookedList(self.owner, value)
+		if self.get(key, _MISSING) is not value:
+			value = _wrap_value(self.owner, self.state, value)
 		super().__setitem__(key, value)
+		self.state.changed = True
 
 	def __delitem__(self, key):
-		self.owner.changed = True
 		super().__delitem__(key)
+		self.state.changed = True
 
-	def pop(self, key, default=None):
-		self.owner.changed = True
-		return super().pop(key, default)
+	def __ior__(self, values):
+		self.update(values)
+		return self
+
+	def pop(self, key, default=_MISSING, /):
+		value = super().pop(key, _MISSING)
+		if value is _MISSING:
+			if default is _MISSING:
+				raise KeyError(key)
+			return default
+		self.state.changed = True
+		return value
 
 	def popitem(self):
-		self.owner.changed = True
-		return super().popitem()
+		item = super().popitem()
+		self.state.changed = True
+		return item
 
 	def clear(self):
-		self.owner.changed = True
-		super().clear()
+		if self:
+			super().clear()
+			self.state.changed = True
+
+	def setdefault(self, key, default=None, /):
+		value = self.get(key, _MISSING)
+		if value is not _MISSING:
+			return value
+		self[key] = default
+		return self[key]
 
 	def update(self, *args, **kwargs):
-		self.owner.changed = True
-		super().update(*args, **kwargs)
+		values = dict(*args, **kwargs)
+		if values:
+			wrapped = {key: _wrap_value(self.owner, self.state, value) for key, value in values.items()}
+			super().update(wrapped)
+			self.state.changed = True
 
 
-class Property(object):
+class _PropertyState:
+	def __init__(self, owner, value):
+		self.value = _wrap_value(owner, self, value)
+		self.changed = False
 
+
+class Property:
 	def __init__(self, type=None, default=None, cond=None):
 		if type not in ALL_TYPES:
-			raise RuntimeError("Unsupported value type: %s" % type.__name__)
-		if isinstance(type, (List, Dict)):
-			raise RuntimeError("Property do not support List or Dict type")
+			raise RuntimeError("Unsupported value type: %r" % (type,))
 		self.type = type
+		self._codec = type()
 		self.default = default
 		self.cond = cond
 
-		self.changed = False
-		self.value = default
-
 	def __set_name__(self, owner, name):
-		if "_ss_properties" not in owner.__dict__:
-			raise RuntimeError("Property must be defined in subclass of PropertyHostMixin")
-		owner._ss_properties[name] = self
+		self.name = name
 
-	def __get__(self, instance, owner):
-		return self.value
+	def _get_state(self, instance):
+		states = instance.__dict__.get("_ss_property_states")
+		if states is None:
+			states = instance._ss_property_states = {}
+		state = states.get(self.name)
+		if state is None:
+			state = states[self.name] = _PropertyState(instance, self.default)
+		return state
+
+	def __get__(self, instance, owner=None):
+		if instance is None:
+			return self
+		return self._get_state(instance).value
 
 	def __set__(self, instance, value):
-		if not self.type.check(value):
-			raise RuntimeError("Property value type incompatible: %s, should be %s" % (type(value).__name__, type(self.type).__name__))
-		if self.value != value:
-			self.changed = True
-		# dict和list即使只改一个元素也会全量同步，建议用专门的SyncDict/SyncList
-		if isinstance(self.type, Dict):
-			value = _HookedDict(self, value)
-		elif isinstance(self.type, List):
-			value = _HookedList(self, value)
-		self.value = value
+		if not self._codec.check(value):
+			raise RuntimeError("Property %s value type incompatible: %s, should be %s" %
+				(self.name, type(value).__name__, self.type.__name__))
+		state = self._get_state(instance)
+		if value is state.value:
+			return
+		state.value = _wrap_value(instance, state, value)
+		state.changed = True
 
-	def serialize(self):
-		value = self.type.serialize(self.value)
+	def serialize(self, instance):
+		return self._codec.serialize(self._get_state(instance).value)
 
 
-class PropertyHostMixin(object):
+class PropertyHostMixin:
+	_ss_properties = {}
+
 	def __init_subclass__(cls, **kwargs):
 		super().__init_subclass__(**kwargs)
-		cls._ss_properties = {}
+		properties = {}
+		for base in reversed(cls.__mro__):
+			for name, value in vars(base).items():
+				if isinstance(value, Property):
+					properties[name] = value
+				else:
+					properties.pop(name, None)
+		cls._ss_properties = properties
 
 	def pack_property(self):
-		if not hasattr(self, "_ss_properties") or not self._ss_properties\
-			or not hasattr(self, "mailbox"):
+		mailbox = getattr(self, "mailbox", None)
+		states = self.__dict__.get("_ss_property_states")
+		if mailbox is None or not states:
 			return None
-		patch = ssproperty_pb2.PropertyPatch(mailbox=self.mailbox)
-		changed = False
+
+		patch = ssproperty_pb2.PropertyPatch(mailbox=mailbox)
+		packed_states = []
 		for name, prop in self._ss_properties.items():
-			if prop.changed:
-				changed = True
-				change_msg = prop.serialize()
-				patch.changes.append(change_msg)
-				prop.changed = True
-		return patch.SerilaizeToString() if changed else None
+			state = states.get(name)
+			if state is not None and state.changed:
+				change = patch.changes.add(value=prop.serialize(self))
+				change.path.add(str_key=name)
+				packed_states.append(state)
+
+		if not packed_states:
+			return None
+
+		data = patch.SerializeToString()
+		for state in packed_states:
+			state.changed = False
+		return data
 
 	def apply_property_changes(self, changes):
 		pass
