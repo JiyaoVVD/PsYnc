@@ -141,14 +141,20 @@ class _HookedDict(dict):
 
 
 class _PropertyState:
+	"""
+	PropertyState用来存储改变状态以及属性的真实值
+	"""
 	def __init__(self, owner, value):
 		self.value = _wrap_value(owner, self, value)
 		self.changed = False
 
 
 class Property:
+	"""
+	属性定义，不负责存储值，类型共享
+	"""
 	def __init__(self, type=None, default=None, cond=None):
-		if type not in ALL_TYPES:
+		if type not in ALL_SS_PROPERTY_TYPES:
 			raise RuntimeError("Unsupported value type: %r" % (type,))
 		self.type = type
 		self._codec = type()
@@ -200,6 +206,46 @@ class PropertyHostMixin:
 					properties.pop(name, None)
 		cls._ss_properties = properties
 
+	def __init__(self):
+		# 只有被赋值给property的时候，这些值才会被真正的初始化
+		self.owner = None
+		self.state = None
+		self.parent = None
+		self._parent_key = None
+
+		# 记录脏属性，用于打包
+		# python3.7之后的dict遍历按照插入顺序遍历
+		self._ss_property_dirty = {}
+		self._path = None	# path lazy init，用于记录当前对象的路径
+
+	def set_property(self, owner, state, parent, key):
+		self.owner = owner
+		self.state = state
+		self.parent = parent
+		self._parent_key = key
+
+	def make_dirty(self, name):
+		owner = getattr(self, "owner", None)
+		if not owner:
+			return
+		if owner is self:
+			self._ss_property_dirty[(None, name)] = None
+		else:
+			owner._ss_property_dirty[(id(self), name)] = self
+
+	def get_path(self):
+		container = self
+		parent = getattr(self, "parent", None)
+		path = []
+		while parent is not None:
+			parent_key = getattr(container, "_parent_key", None)
+			if not parent_key:
+				raise RuntimeError("Parent key for property %s in %s not found" % (container, parent))
+			path.append(parent_key)
+			container = parent
+			parent = getattr(parent, "parent", None)
+		return reversed(path)
+
 	def pack_property(self):
 		mailbox = getattr(self, "mailbox", None)
 		states = self.__dict__.get("_ss_property_states")
@@ -231,8 +277,27 @@ class SyncDict(dict, PropertyHostMixin):
 	"""
 	同步字典，支持嵌套。支持通过path一次同步某个字段
 	"""
-	def __init__(self, ):
-		pass
+	def __init__(self, *args, **kwargs):
+		dict.__init__(self, *args, **kwargs)
+		PropertyHostMixin.__init__(self)
+
+	def __getattr__(self, key):
+		return self[key]
+
+	def __setattr__(self, key, value):
+		if key in self:
+			self[key] = value
+		dict.__setattr__(self, key, value)
+
+	def __getitem__(self, key):
+		if key in self._ss_properties:
+			return self._ss_properties[key]._get_state(self).value
+		return dict.__getitem__(self, key)
+
+	def __setitem__(self, key, value):
+		if key in self._ss_properties:
+			self._ss_properties[key].__set__(self, value)
+		dict.__setitem__(self, key, value)
 
 
 class SyncList(PropertyHostMixin):
