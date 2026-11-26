@@ -20,6 +20,12 @@ def _wrap_value(owner, name, value):
 	return value
 
 
+def _wrap_property(owner, name, value):
+	value = _wrap_value(owner, name, value)
+	value = owner._preprocess_property(name, value)
+	return value
+
+
 class _HookedList(list):
 	def __init__(self, owner, name, values=(), /):
 		self.owner = owner
@@ -163,8 +169,7 @@ class Property:
 	def _set_value(self, instance, value):
 		if "_ss_property_values" not in instance.__dict__:
 			instance._ss_property_values = {}
-		value = _wrap_value(instance, self.name, value)
-		value = instance._preprocess_property(value)
+		_wrap_property(instance, self.name, value)
 		instance._ss_property_values[self.name] = value
 
 	def __get__(self, instance, owner=None):
@@ -211,7 +216,9 @@ class PropertyHostMixin:
 		self._ss_property_dirty = {}
 		self._path = None	# path lazy init，用于记录当前对象的路径
 
-	def _preprocess_property(self, value):
+	def _preprocess_property(self, name, value):
+		if isinstance(value, PropertyHostMixin):
+			value._set_property(self.owner, self, name)
 		return value
 
 	def _set_property(self, owner, parent, key):
@@ -295,9 +302,11 @@ class SyncDict(dict, PropertyHostMixin):
 		return self[key]
 
 	def __setattr__(self, key, value):
+		value = _wrap_property(self, key, value)
 		if key in self:
 			self[key] = value
 		dict.__setattr__(self, key, value)
+		self._make_dirty(key)
 
 	def __getitem__(self, key):
 		if key in self._ss_properties:
@@ -305,9 +314,14 @@ class SyncDict(dict, PropertyHostMixin):
 		return dict.__getitem__(self, key)
 
 	def __setitem__(self, key, value):
+		value = _wrap_property(self, key, value)
 		if key in self._ss_properties:
 			self._ss_properties[key].__set__(self, value)
 		dict.__setitem__(self, key, value)
+		self._make_dirty(key)
+
+	def update(self, *args, **kwargs):
+
 
 
 class SyncList(PropertyHostMixin):
@@ -331,3 +345,16 @@ if __name__ == "__main__":
 
 	e.a = 3
 	print(e.pack_property())
+
+	class TestSyncDict(SyncDict):
+		a = Property(
+			type = Int,
+			default = 1,
+			cond = SyncCond.ALL,
+		)
+
+	d = TestSyncDict()
+	d.a = 2
+	d['b'] = 3
+	print(d.b)
+	print(d['a'])
