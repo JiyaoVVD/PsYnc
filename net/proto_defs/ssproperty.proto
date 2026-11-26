@@ -9,7 +9,6 @@ message PropertyField{
 		int64 int_key = 1;
 		string str_key = 2;
 		bool bool_key = 3;
-		int64 index_key = 4;
 	}
 }
 

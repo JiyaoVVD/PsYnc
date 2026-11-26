@@ -1,0 +1,19 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "PsYnc: Debug Current Python File",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "${file}",
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}"
+			},
+			"windows": {
+				"python": "${env:LOCALAPPDATA}/Programs/Python/Python312/python.exe"
+			}
+		}
+	]
+}

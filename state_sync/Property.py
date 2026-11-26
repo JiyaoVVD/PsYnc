@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from net.protos import ssproperty_pb2
-from net.protocol.Types import ALL_TYPES, Dict, List
+from net.protocol.Types import ALL_TYPES, Int, serialize_by_type
 
 class SyncCond:
 	NONE = 0
@@ -12,31 +12,31 @@ class SyncCond:
 _MISSING = object()
 
 
-def _wrap_value(owner, state, value):
-	if isinstance(value, list):
-		return _HookedList(owner, state, value)
-	if isinstance(value, dict):
-		return _HookedDict(owner, state, value)
+def _wrap_value(owner, name, value):
+	if isinstance(value, list) and not isinstance(value, SyncList):
+		return _HookedList(owner, name, value)
+	if isinstance(value, dict) and not isinstance(value, SyncDict):
+		return _HookedDict(owner, name, value)
 	return value
 
 
 class _HookedList(list):
-	def __init__(self, owner, state, values=(), /):
+	def __init__(self, owner, name, values=(), /):
 		self.owner = owner
-		self.state = state
-		super().__init__(_wrap_value(owner, state, value) for value in values)
+		self.name = name
+		super().__init__(_wrap_value(owner, name, value) for value in values)
 
 	def __setitem__(self, key, value):
 		if isinstance(key, slice):
-			value = [_wrap_value(self.owner, self.state, item) for item in value]
+			value = [_wrap_value(self.owner, self.name, item) for item in value]
 		elif self[key] is not value:
-			value = _wrap_value(self.owner, self.state, value)
+			value = _wrap_value(self.owner, self.name, value)
 		super().__setitem__(key, value)
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 
 	def __delitem__(self, key):
 		super().__delitem__(key)
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 
 	def __iadd__(self, values):
 		self.extend(values)
@@ -44,63 +44,63 @@ class _HookedList(list):
 
 	def __imul__(self, count):
 		super().__imul__(count)
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 		return self
 
 	def append(self, value, /):
-		super().append(_wrap_value(self.owner, self.state, value))
-		self.state.changed = True
+		super().append(_wrap_value(self.owner, self.name, value))
+		self.owner._make_dirty(self.name)
 
 	def extend(self, values, /):
-		wrapped = [_wrap_value(self.owner, self.state, value) for value in values]
+		wrapped = [_wrap_value(self.owner, self.name, value) for value in values]
 		if wrapped:
 			super().extend(wrapped)
-			self.state.changed = True
+			self.owner._make_dirty(self.name)
 
 	def insert(self, index, value, /):
-		super().insert(index, _wrap_value(self.owner, self.state, value))
-		self.state.changed = True
+		super().insert(index, _wrap_value(self.owner, self.name, value))
+		self.owner._make_dirty(self.name)
 
 	def pop(self, index=-1, /):
 		value = super().pop(index)
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 		return value
 
 	def remove(self, value, /):
 		super().remove(value)
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 
 	def clear(self):
 		if self:
 			super().clear()
-			self.state.changed = True
+			self.owner._make_dirty(self.name)
 
 	def reverse(self):
 		super().reverse()
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 
 	def sort(self, *, key=None, reverse=False):
 		values = sorted(self, key=key, reverse=reverse)
 		super().__setitem__(slice(None), values)
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 
 
 class _HookedDict(dict):
-	def __init__(self, owner, state, /, *args, **kwargs):
+	def __init__(self, owner, name, /, *args, **kwargs):
 		self.owner = owner
-		self.state = state
+		self.name = name
 		values = dict(*args, **kwargs)
-		super().__init__({key: _wrap_value(owner, state, value) for key, value in values.items()})
+		super().__init__({key: _wrap_value(self.owner, self.name, value) for key, value in values.items()})
 
 	def __setitem__(self, key, value):
 		if self.get(key, _MISSING) is not value:
-			value = _wrap_value(self.owner, self.state, value)
+			value = _wrap_value(self.owner, self.name, value)
 		super().__setitem__(key, value)
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 
 	def __delitem__(self, key):
 		super().__delitem__(key)
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 
 	def __ior__(self, values):
 		self.update(values)
@@ -112,18 +112,18 @@ class _HookedDict(dict):
 			if default is _MISSING:
 				raise KeyError(key)
 			return default
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 		return value
 
 	def popitem(self):
 		item = super().popitem()
-		self.state.changed = True
+		self.owner._make_dirty(self.name)
 		return item
 
 	def clear(self):
 		if self:
 			super().clear()
-			self.state.changed = True
+			self.owner._make_dirty(self.name)
 
 	def setdefault(self, key, default=None, /):
 		value = self.get(key, _MISSING)
@@ -135,18 +135,9 @@ class _HookedDict(dict):
 	def update(self, *args, **kwargs):
 		values = dict(*args, **kwargs)
 		if values:
-			wrapped = {key: _wrap_value(self.owner, self.state, value) for key, value in values.items()}
+			wrapped = {key: _wrap_value(self.owner, self.name, value) for key, value in values.items()}
 			super().update(wrapped)
-			self.state.changed = True
-
-
-class _PropertyState:
-	"""
-	PropertyState用来存储改变状态以及属性的真实值
-	"""
-	def __init__(self, owner, value):
-		self.value = _wrap_value(owner, self, value)
-		self.changed = False
+			self.owner._make_dirty(self.name)
 
 
 class Property:
@@ -164,32 +155,35 @@ class Property:
 	def __set_name__(self, owner, name):
 		self.name = name
 
-	def _get_state(self, instance):
-		states = instance.__dict__.get("_ss_property_states")
-		if states is None:
-			states = instance._ss_property_states = {}
-		state = states.get(self.name)
-		if state is None:
-			state = states[self.name] = _PropertyState(instance, self.default)
-		return state
+	def _get_value(self, instance):
+		if "_ss_property_values" not in instance.__dict__:
+			instance._ss_property_values = {}
+		return instance._ss_property_values.get(self.name, self.default)
+
+	def _set_value(self, instance, value):
+		if "_ss_property_values" not in instance.__dict__:
+			instance._ss_property_values = {}
+		value = _wrap_value(instance, self.name, value)
+		value = instance._preprocess_property(value)
+		instance._ss_property_values[self.name] = value
 
 	def __get__(self, instance, owner=None):
 		if instance is None:
 			return self
-		return self._get_state(instance).value
+		return self._get_value(instance)
 
 	def __set__(self, instance, value):
 		if not self._codec.check(value):
 			raise RuntimeError("Property %s value type incompatible: %s, should be %s" %
 				(self.name, type(value).__name__, self.type.__name__))
-		state = self._get_state(instance)
-		if value is state.value:
+		old_value = self._get_value(instance)
+		if value is old_value:
 			return
-		state.value = _wrap_value(instance, state, value)
-		state.changed = True
+		self._set_value(instance, value)
+		instance._make_dirty(self.name)
 
 	def serialize(self, instance):
-		return self._codec.serialize(self._get_state(instance).value)
+		return self._codec.serialize(self._get_value(instance))
 
 
 class PropertyHostMixin:
@@ -208,8 +202,7 @@ class PropertyHostMixin:
 
 	def __init__(self):
 		# 只有被赋值给property的时候，这些值才会被真正的初始化
-		self.owner = None
-		self.state = None
+		self.owner = self
 		self.parent = None
 		self._parent_key = None
 
@@ -218,22 +211,32 @@ class PropertyHostMixin:
 		self._ss_property_dirty = {}
 		self._path = None	# path lazy init，用于记录当前对象的路径
 
-	def set_property(self, owner, state, parent, key):
+	def _preprocess_property(self, value):
+		return value
+
+	def _set_property(self, owner, parent, key):
 		self.owner = owner
-		self.state = state
 		self.parent = parent
 		self._parent_key = key
+		# 重新被设置为属性时需要清空path缓存
+		self._path = None
 
-	def make_dirty(self, name):
+	def _make_dirty(self, name):
 		owner = getattr(self, "owner", None)
-		if not owner:
-			return
 		if owner is self:
-			self._ss_property_dirty[(None, name)] = None
+			key = (None, name)
+			value = None
 		else:
-			owner._ss_property_dirty[(id(self), name)] = self
+			key = (id(self), name)
+			value = self
+		if key in owner._ss_property_dirty:
+			# 重复设置时先删再加，保证属性修改的迭代顺序
+			owner._ss_property_dirty.pop(key)
+		owner._ss_property_dirty[key] = value
 
-	def get_path(self):
+	def _get_path_as_property(self):
+		if self._path is not None:
+			return self._path
 		container = self
 		parent = getattr(self, "parent", None)
 		path = []
@@ -244,29 +247,36 @@ class PropertyHostMixin:
 			path.append(parent_key)
 			container = parent
 			parent = getattr(parent, "parent", None)
-		return reversed(path)
+		self._path = path = list(reversed(path))
+		return path
 
 	def pack_property(self):
-		mailbox = getattr(self, "mailbox", None)
-		states = self.__dict__.get("_ss_property_states")
-		if mailbox is None or not states:
-			return None
+		mailbox = getattr(self, "mailbox", 0)
 
 		patch = ssproperty_pb2.PropertyPatch(mailbox=mailbox)
-		packed_states = []
-		for name, prop in self._ss_properties.items():
-			state = states.get(name)
-			if state is not None and state.changed:
+		if not self._ss_property_dirty:
+			return None
+		for key, ref in self._ss_property_dirty.items():
+			prop_id, name = key
+			if prop_id is None:
+				prop = self._ss_properties[name]
 				change = patch.changes.add(value=prop.serialize(self))
 				change.path.add(str_key=name)
-				packed_states.append(state)
-
-		if not packed_states:
-			return None
-
+			else:
+				path = ref._get_path_as_property()
+				change = patch.changes.add(value=serialize_by_type(ref[name]))
+				for key in path + [name]:
+					key_type = type(key)
+					if key_type is str:
+						change.path.add(str_key=key)
+					elif key_type is int:
+						change.path.add(int_key=key)
+					elif key_type is bool:
+						change.path.add(bool_key=key)
+					else:
+						raise RuntimeError("Unsupported key type: %s" % key_type.__name__)
+		self._ss_property_dirty.clear()
 		data = patch.SerializeToString()
-		for state in packed_states:
-			state.changed = False
 		return data
 
 	def apply_property_changes(self, changes):
@@ -291,7 +301,7 @@ class SyncDict(dict, PropertyHostMixin):
 
 	def __getitem__(self, key):
 		if key in self._ss_properties:
-			return self._ss_properties[key]._get_state(self).value
+			return self._ss_properties[key]._get_value(self)
 		return dict.__getitem__(self, key)
 
 	def __setitem__(self, key, value):
@@ -307,3 +317,17 @@ class SyncList(PropertyHostMixin):
 
 
 ALL_SS_PROPERTY_TYPES = ALL_TYPES.union({SyncDict, SyncList})
+
+
+if __name__ == "__main__":
+	class TestEntity(PropertyHostMixin):
+		a = Property(
+			type = Int,
+			default = 1,
+			cond = SyncCond.ALL,
+		)
+
+	e = TestEntity()
+
+	e.a = 3
+	print(e.pack_property())
